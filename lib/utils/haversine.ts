@@ -1,0 +1,29 @@
+/**
+ * Great-circle distance between two coordinates in kilometres.
+ *
+ * Used as the basis for v1 drive-time estimates. Underestimates real road
+ * distance everywhere a route deviates from a straight line — but since
+ * the drive penalty is capped at 15 score points, the worst-case
+ * approximation error doesn't change the top recommendation when the
+ * wave-quality difference is meaningful.
+ */
+
+const EARTH_RADIUS_KM = 6371;
+
+function toRad(deg: number): number {
+  return (deg * Math.PI) / 180;
+}
+
+export function haversineKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number {
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * EARTH_RADIUS_KM * Math.asin(Math.min(1, Math.sqrt(a)));
+}
