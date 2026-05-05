@@ -21,6 +21,14 @@
  * helpers shifted.
  */
 
+/**
+ * Vercel serverless function timeout. Hobby tier defaults to 10s but allows
+ * up to 60s; Pro defaults to 15s but allows up to 300s. The narration stream
+ * routinely takes 12-15s, so we explicitly request 60s here. Without this
+ * config, narration tokens get truncated mid-sentence on Hobby deploys.
+ */
+export const maxDuration = 60;
+
 import { spots as ALL_SPOTS } from '@/data/spots';
 import { VIC_SCHOOL_HOLIDAYS_2026 } from '@/lib/config';
 import { geocode } from '@/lib/conditions/geocoding';
