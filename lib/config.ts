@@ -311,7 +311,8 @@ export const OPEN_METEO_GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1
 // ════════════════════════════════════════════════════════════════════════════
 
 /** Anthropic model id used by the narration layer. */
-export const NARRATION_MODEL = 'claude-sonnet-4-6';
+// TEMP: swapped to Haiku for cheap iteration during UI testing — revert to claude-sonnet-4-6 before launch.
+export const NARRATION_MODEL = 'claude-haiku-4-5-20251001';
 
 /**
  * Hard timeout for the narration call in ms. Beyond this we fall back to deterministic local narration.
