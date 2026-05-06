@@ -111,12 +111,12 @@ describe('sizeSweetSpotScore', () => {
 describe('swellQuality (combined)', () => {
   it('perfect alignment scores ≥ 95', () => {
     // Bells: 4ft @ 13s @ 205° (near centre 205.5).
-    // direction ~99, period high, K-G effective ≈ 6.6 (in 4-8 sweet) → size 100
+    // direction ~99, period high, K-G calibrated ≈ 5.6 (in 4-8 sweet) → size 100
     const r = swellQuality(BELLS, { heightFt: 4, periodS: 13, directionDeg: 205 });
     expect(r.total).toBeGreaterThan(95);
     expect(r.direction).toBeGreaterThan(95);
     expect(r.size).toBe(100);
-    expect(r.effectiveSizeFt).toBeCloseTo(6.6, 1);
+    expect(r.effectiveSizeFt).toBeCloseTo(5.6, 1);
   });
 
   it('bad direction nukes the score even with great period+size', () => {
@@ -147,10 +147,10 @@ describe('swellQuality (combined)', () => {
   });
 
   it('undersized swell: size floor and short-period penalty', () => {
-    // Bells 1ft @ 8s: K-G effective ≈ 1.79ft. Below sweet 4-8 (centre ≈ 6).
-    // distance below sweet (4) = 2.21 → 100 - 2.21*15 ≈ 67.
+    // Bells 1ft @ 8s: K-G calibrated ≈ 1.52ft. Below sweet 4-8 (centre ≈ 6).
+    // distance below sweet (4) = 2.48 → 100 - 2.48*15 ≈ 63.
     const r = swellQuality(BELLS, { heightFt: 1, periodS: 8, directionDeg: 205 });
-    expect(r.size).toBeCloseTo(67, 0);
+    expect(r.size).toBeCloseTo(63, 0);
     expect(r.period).toBeCloseTo(60, 1);
     // Reasonable middling score for "small but clean."
     expect(r.total).toBeGreaterThan(70);

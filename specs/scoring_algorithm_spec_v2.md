@@ -130,9 +130,11 @@ For spots that pass all gates, compute swell quality on a 0-100 scale.
 
 **Critical concept:** Period non-linearly multiplies wave energy, and an open-ocean swell breaks substantially bigger than its raw `swell_wave_height`. The algorithm computes *effective breaker height* via the standard physics formula before scoring against the spot's sweet spot or applying the per-skill ceiling.
 
-**Formula:**
+**Formula (with calibration):**
 ```
-Hb = 0.39 · g^(1/5) · (T · Hs²)^(2/5)
+Hb_raw        = 0.39 · g^(1/5) · (T · Hs²)^(2/5)
+Hb_calibrated = Hb_raw × 0.85
+Hb            = min(Hb_calibrated, 3 × Hs)
 ```
 
 Where:
@@ -143,27 +145,24 @@ Where:
 
 **Source:** Komar, P. D., & Gaughan, M. K. (1972). "Airy Wave Theory and Breaker Height Prediction." *Proceedings of the 13th International Conference on Coastal Engineering*, ASCE. Derived from Airy wave theory + four independent lab and field datasets. The formula is dimensionally consistent — works in either metric or imperial without unit conversion.
 
-**Practical cap:**
-```
-Hb_capped = min(Hb, 3 × Hs)
-```
+**Calibration:** K-G predicts the *theoretical* breaker height assuming no refraction or depth loss — the upper bound of what's physically possible. Real spots lose 15-30% to refraction, depth limiting, and bottom friction. Without calibration, raw K-G outputs render the existing skill ceilings (3 / 5 / 8 ft) too punitive — beginners are gated from every Vic spot in normal 5-6ft conditions. The 0.85 coefficient brings outputs in line with empirical surf face heights (cf. Stormsurf observations) while preserving K-G's non-linear period dependence. Tunable via `EFFECTIVE_SIZE_CALIBRATION` in `lib/config.ts`.
 
-Komar-Gaughan predicts the theoretical breaker height in shallow water assuming no depth or refraction loss. Real spots are bounded by the McCowan (1894) depth-limited breaking limit `Hb ≈ 0.78 × depth`; for typical 10–15ft beach-break depths this corresponds to roughly 3× swell height. The cap rarely binds for realistic Victorian conditions — it's a defensive ceiling against pathological inputs (e.g. 1ft swell at 25s+ period).
+**Practical cap:** McCowan (1894) depth-limited breaking limit `Hb ≈ 0.78 × depth`. For typical 10–15ft beach-break depths this is roughly 3× swell height. Rarely binds for realistic Victorian conditions; defensive against pathological inputs (e.g. 1ft swell at 25s+ period).
 
-**Worked examples (rounded to 0.1 ft):**
+**Worked examples (rounded to 0.1 ft, calibrated):**
 
-| Hs (ft) | T (s) | K-G Hb (ft) |
-|--:|--:|--:|
-| 2 | 8  | 3.6 |
-| 3 | 8  | 4.3 |
-| 3 | 10 | 4.9 |
-| 3 | 14 | 5.4 |
-| 4 | 7  | 5.2 |
-| 4 | 12 | 6.4 |
-| 5 | 14 | 8.1 |
-| 6 | 12 | 8.4 |
-| 8 | 12 | 11.1 |
-| 8 | 16 | 12.5 |
+| Hs (ft) | T (s) | raw K-G | calibrated |
+|--:|--:|--:|--:|
+| 2 | 8  | 3.6  | 3.1 |
+| 3 | 8  | 4.3  | 3.7 |
+| 3 | 10 | 4.9  | 4.2 |
+| 3 | 14 | 5.4  | 4.6 |
+| 4 | 7  | 5.2  | 4.4 |
+| 4 | 12 | 6.4  | 5.4 |
+| 5 | 14 | 8.1  | 6.9 |
+| 6 | 12 | 8.4  | 7.1 |
+| 8 | 12 | 11.1 | 9.5 |
+| 8 | 16 | 12.5 | 10.6 |
 
 **Implementation:** `lib/scoring/effectiveSize.ts` exports `breakerHeightFt(swellHeightFt, periodS)` and a back-compat alias `effectiveSize` so callsites (Gate 1.7, swellQuality Layer 2, hazards, narration) consume the new formula transparently.
 

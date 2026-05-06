@@ -51,13 +51,26 @@ export const SKILL_MIN_FORGIVENESS: Record<SkillLevel, ('forgiving' | 'moderate'
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
+ * Calibration coefficient applied to the raw Komar-Gaughan breaker height.
+ *
+ * K-G predicts the theoretical breaker height assuming no refraction or
+ * depth loss — the upper bound of what's physically possible at the
+ * breaking point. Real spots lose 15-30% to refraction, depth limiting,
+ * and bottom friction (cf. Stormsurf empirical observations). 0.85 brings
+ * the formula in line with realistic surf face heights without flattening
+ * the period non-linearity.
+ *
+ * Tunable; raise toward 1.0 to make recommendations more conservative
+ * (gates trigger sooner), lower toward ~0.5 to admit larger conditions
+ * for less-skilled users.
+ */
+export const EFFECTIVE_SIZE_CALIBRATION = 0.85;
+
+/**
  * Practical depth-limited cap on breaker height, expressed as a ratio of
- * swell height. The Komar-Gaughan formula in lib/scoring/effectiveSize.ts
- * predicts the theoretical breaker height assuming no depth or refraction
- * loss; this cap reins in pathological inputs (e.g. 1ft @ 25s) by enforcing
- * the McCowan (1894) depth-limited breaking limit at typical 10–15ft
- * beach-break depths. For realistic Victorian conditions the cap rarely
- * binds.
+ * swell height. McCowan (1894) wave-breaking limit at typical 10–15ft
+ * beach-break depths. Defensive ceiling against pathological inputs (e.g.
+ * 1ft @ 25s); rarely binds for realistic Victorian conditions.
  */
 export const EFFECTIVE_SIZE_MAX_RATIO_TO_SWELL = 3;
 
