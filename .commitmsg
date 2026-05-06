@@ -1,0 +1,56 @@
+﻿feat: traditional/Hawaiian scale + live tide data + 6-search beta cap
+
+Three pre-feedback-collection changes:
+
+1. Display heights in Hawaiian/Traditional convention (face / 2, half-foot
+   resolution). Engine internals stay in face-height feet; conversion is
+   applied only at display boundaries (SpotCard, narration JSON, fallback).
+   New util lib/scoring/heightScale.ts. Narration prompt has a new
+   "Wave-size convention" section instructing Claude to quote
+   surf_height_ft_traditional verbatim, never face-multiply, and use
+   shoulder-/head-/overhead vocabulary.
+
+2. Wire real tide data via Open-Meteo's existing sea_level_height_msl
+   field — zero new auth, zero quota risk, no signup. Phase (low/mid_low/
+   mid/mid_high/high) and direction (rising/falling) are derived from a
+   ±3-hour window in the hourly time series. tideFactor now implements
+   spec §4: low-sensitivity spots stay at 1.0; medium and high apply the
+   in-window / adjacent / far multipliers + ±0.03 trajectory bonus.
+   Preference strings ("Mid to high", "Most tides", "Variable", etc.) are
+   parsed by a new lib/scoring/tidePreference.ts module. When the field
+   is missing or out-of-coverage, tideFactor falls back to 1.0 + a
+   "tide unavailable" caveat — request never fails on tide alone.
+   LiveConditions.tideState replaced with structured TideState type.
+
+3. Soft 6-search-per-browser limit via localStorage (key:
+   swell.searchCount). Counter increments only on stream completion
+   (frame.type === 'done'), so failed/aborted searches don't burn budget.
+   On the 6th attempt a "Search 6 of 6" line appears below the submit
+   button. The 7th submit replaces the form with a friendly limit-reached
+   notice + Google Form link. No backend rate limiting; this is a
+   testing-phase soft cap, not abuse prevention.
+
+Verified live (today's Melbourne morning):
+- Fairhaven face=4.9ft -> trad=2.5ft, tide phase=low/falling, factor=1.0
+- Flinders face=5.5ft -> trad=2.5ft, factor=1.02 (medium sensitivity)
+- Bells Beach face=4.1ft -> trad=2ft, factor=1.02 (medium, unconstrained)
+
+276/276 tests pass; tsc clean; lint 0 errors.
+
+Files:
+- NEW lib/scoring/heightScale.ts        — face -> traditional util
+- NEW lib/scoring/tidePreference.ts     — preference-string parser
+- NEW tests/scoring/heightScale.test.ts
+- NEW tests/scoring/tidePreference.test.ts
+- lib/scoring/tideFactor.ts             — spec §4 implementation
+- lib/conditions/openMeteo.ts           — sea_level_height_msl + deriveTideState
+- lib/types.ts                          — TideState / TidePhase / TideDirection
+- lib/scoring/composite.ts              — pass tide into tideFactor
+- lib/narration/{client,prompt,fallback}.ts — traditional scale handling
+- specs/scoring_algorithm_spec_v2.md    — tide factor live now
+- specs/narration_prompt_spec.md        — example tide JSON updated
+- app/page.tsx                          — search-limit + LimitReachedNotice
+- tests/* — composite/gates/hazards/windFactor/fallback/tideFactor updated
+- scripts/smoke-narration.ts            — TideState shape
+
+Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>

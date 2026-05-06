@@ -11,6 +11,7 @@ function conditions(windDirectionDeg: number, windSpeedKt: number): LiveConditio
     secondarySwell: null,
     windDirectionDeg,
     windSpeedKt,
+    tide: { phase: null, direction: null, heightM: null },
     forecastHorizonHours: 6,
     fetchedAt: Date.parse('2026-05-05T08:00:00Z'),
   };

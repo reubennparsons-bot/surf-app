@@ -189,10 +189,6 @@ export const TIDE_FACTOR_HIGH_OUTSIDE = 0.80;
 export const TIDE_TRAJECTORY_BONUS = 0.03;
 export const TIDE_TRAJECTORY_PENALTY = 0.03;
 
-/** v1: surfaced as a caveat on medium/high sensitivity spots only. */
-export const TIDE_NOT_FACTORED_CAVEAT =
-  'Tide not factored in v1 — verify against tide tables before paddling out.';
-
 // ════════════════════════════════════════════════════════════════════════════
 // LAYER 5 — CROWD FACTOR (modifier, 0.70–1.00)
 // ════════════════════════════════════════════════════════════════════════════

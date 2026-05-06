@@ -10,6 +10,7 @@
  * mistake AI-generated phrasing for our own.
  */
 
+import { toTraditionalFt } from '@/lib/scoring/heightScale';
 import type { RecommendationResult, ScoredSpot } from '@/lib/types';
 
 const SKILL_LABEL: Record<string, string> = {
@@ -38,7 +39,7 @@ function formatSpot(s: ScoredSpot, rank: number): string {
     `   Swell ${c.swellHeightFt.toFixed(1)}ft @ ${c.swellPeriodS.toFixed(0)}s from ${Math.round(c.swellDirectionDeg)}°, ` +
       `wind ${Math.round(c.windSpeedKt)}kt from ${Math.round(c.windDirectionDeg)}°`,
   );
-  lines.push(`   Effective wave size: ${s.effectiveSizeFt.toFixed(1)}ft`);
+  lines.push(`   Surf height: ${toTraditionalFt(s.effectiveSizeFt).toFixed(1)}ft (traditional)`);
 
   if (s.activeHazards.length > 0) {
     const hazardStr = s.activeHazards

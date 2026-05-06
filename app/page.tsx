@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useRef, type FormEvent } from 'react';
+import { useEffect, useState, useRef, type FormEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { MapPin } from 'lucide-react';
 import { EmailCapture } from '@/components/EmailCapture';
 import { FeedbackBanner } from '@/components/FeedbackBanner';
+import { toTraditionalFt } from '@/lib/scoring/heightScale';
 import type {
   ActiveHazard,
   EliminationDetail,
@@ -24,7 +25,11 @@ type StreamFrame =
   | { type: 'delta'; text: string }
   | { type: 'done'; fallback: boolean };
 
-type Phase = 'idle' | 'loading' | 'streaming' | 'done' | 'error';
+type Phase = 'idle' | 'loading' | 'streaming' | 'done' | 'error' | 'limit_reached';
+
+const SEARCH_COUNT_KEY = 'swell.searchCount';
+const MAX_SEARCHES = 6;
+const FEEDBACK_FORM_URL = 'https://forms.gle/w3U4VWygVusPK9888';
 
 // ─── Visual helpers ────────────────────────────────────────────────────────
 
@@ -112,7 +117,7 @@ function SpotCard({ spot }: { spot: ScoredSpot }) {
         <div>
           <dt className="text-zinc-500 dark:text-zinc-400">Surf height</dt>
           <dd className="font-medium text-zinc-800 dark:text-zinc-200">
-            {spot.effectiveSizeFt.toFixed(1)}ft
+            {toTraditionalFt(spot.effectiveSizeFt).toFixed(1)}ft
           </dd>
         </div>
         <div className="col-span-2 sm:col-span-1">
@@ -214,6 +219,20 @@ export default function Home() {
   const [specificDate, setSpecificDate] = useState('');
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('morning');
   const dateInputRef = useRef<HTMLInputElement>(null);
+  const [searchCount, setSearchCount] = useState(0);
+
+  // Hydrate searchCount from localStorage on mount; if at the cap, surface
+  // the limit-reached state immediately so the user doesn't see the form.
+  // Reading from a browser-only store on mount is the intended useEffect
+  // pattern; the lint rule's "render-instead" suggestion doesn't apply.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const raw = localStorage.getItem(SEARCH_COUNT_KEY);
+    const count = raw ? parseInt(raw, 10) || 0 : 0;
+    setSearchCount(count);
+    if (count >= MAX_SEARCHES) setPhase('limit_reached');
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Result state
   const [result, setResult] = useState<RecommendationResult | null>(null);
@@ -222,6 +241,10 @@ export default function Home() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (searchCount >= MAX_SEARCHES) {
+      setPhase('limit_reached');
+      return;
+    }
     setPhase('loading');
     setErrorMsg('');
     setResult(null);
@@ -286,6 +309,9 @@ export default function Home() {
           } else if (frame.type === 'done') {
             setNarrationFallback(frame.fallback);
             setPhase('done');
+            const nextCount = searchCount + 1;
+            setSearchCount(nextCount);
+            localStorage.setItem(SEARCH_COUNT_KEY, String(nextCount));
           }
         }
       }
@@ -317,6 +343,7 @@ export default function Home() {
   }
 
   const showResults = phase === 'streaming' || phase === 'done';
+  const limitReached = phase === 'limit_reached';
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
@@ -487,7 +514,32 @@ export default function Home() {
           >
             {phase === 'loading' ? 'Checking conditions…' : 'Find waves'}
           </button>
+
+          {searchCount >= MAX_SEARCHES - 1 && (
+            <p className="text-center text-xs text-zinc-500 dark:text-zinc-400">
+              Search {searchCount + 1} of {MAX_SEARCHES}
+            </p>
+          )}
         </form>
+      )}
+
+      {limitReached && (
+        <div className="rounded-md border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-300">
+          <p className="font-medium text-zinc-900 dark:text-zinc-100">
+            You&apos;ve used your {MAX_SEARCHES} searches for this beta.
+          </p>
+          <p className="mt-2">
+            Thanks for testing! Please share your feedback in the form so we know what to improve.
+          </p>
+          <a
+            href={FEEDBACK_FORM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex items-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            Share feedback
+          </a>
+        </div>
       )}
 
       {phase === 'error' && (

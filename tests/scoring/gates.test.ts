@@ -43,6 +43,7 @@ function conditions(over: Partial<LiveConditions> = {}): LiveConditions {
     secondarySwell: null,
     windSpeedKt: 5,
     windDirectionDeg: 337.5, // matches Bells offshoreDirection — fully offshore
+    tide: { phase: null, direction: null, heightM: null },
     forecastHorizonHours: 6,
     fetchedAt: Date.parse('2026-05-05T08:00:00Z'),
     ...over,

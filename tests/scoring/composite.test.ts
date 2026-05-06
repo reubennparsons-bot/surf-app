@@ -21,6 +21,7 @@ function conditions(over: Partial<LiveConditions> = {}): LiveConditions {
     secondarySwell: null,
     windDirectionDeg: 337.5,
     windSpeedKt: 5,
+    tide: { phase: null, direction: null, heightM: null },
     forecastHorizonHours: 6,
     fetchedAt: T0,
     ...over,
@@ -120,6 +121,7 @@ describe('firing flag', () => {
       secondarySwell: null,
       windDirectionDeg: 315, // exactly Fairhaven offshore (NW)
       windSpeedKt: 8,
+      tide: { phase: null, direction: null, heightM: null },
       forecastHorizonHours: 4,
       fetchedAt: T0,
     };
@@ -138,6 +140,7 @@ describe('firing flag', () => {
       secondarySwell: null,
       windDirectionDeg: 270, // 45° from offshore (315°). Direction factor 0.92, strength 1.0.
       windSpeedKt: 8,
+      tide: { phase: null, direction: null, heightM: null },
       forecastHorizonHours: 4,
       fetchedAt: T0,
     };
@@ -153,6 +156,7 @@ describe('firing flag', () => {
       secondarySwell: null,
       windDirectionDeg: 225, // 90° from offshore — pure cross-shore
       windSpeedKt: 8,
+      tide: { phase: null, direction: null, heightM: null },
       forecastHorizonHours: 4,
       fetchedAt: T0,
     };
@@ -174,6 +178,7 @@ describe('quality category mapping', () => {
       secondarySwell: null,
       windDirectionDeg: 157.5,
       windSpeedKt: 10,
+      tide: { phase: null, direction: null, heightM: null },
       forecastHorizonHours: 6,
       fetchedAt: T0,
     };
@@ -192,6 +197,7 @@ describe('cross-swell penalty', () => {
       secondarySwell: null,
       windDirectionDeg: 315,
       windSpeedKt: 5,
+      tide: { phase: null, direction: null, heightM: null },
       forecastHorizonHours: 6,
       fetchedAt: T0,
     };

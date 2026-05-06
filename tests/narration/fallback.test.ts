@@ -41,14 +41,14 @@ function buildResult(over: Partial<RecommendationResult> = {}): RecommendationRe
           { hazard: 'rocks', severity: 'caution', reason: 'Rocky reef bottom' },
           { hazard: 'crowd', severity: 'warning', reason: 'High crowd expected on weekend' },
         ],
-        caveats: ['Tide not factored in v1 — verify against tide tables before paddling out.'],
+        caveats: [],
         conditionsSummary: {
           swellHeightFt: 4.1,
           swellPeriodS: 13,
           swellDirectionDeg: 205,
           windSpeedKt: 8,
           windDirectionDeg: 320,
-          tideState: 'not factored in v1',
+          tide: { phase: 'mid_high', direction: 'rising', heightM: 1.4 },
           forecastHorizonHours: 18,
         },
       },
@@ -93,8 +93,16 @@ describe('deterministicFallback', () => {
   });
 
   it('surfaces caveats verbatim', () => {
-    const text = deterministicFallback(buildResult());
-    expect(text).toMatch(/Tide not factored in v1/);
+    const result = buildResult({
+      rankedSpots: [
+        {
+          ...buildResult().rankedSpots[0],
+          caveats: ['Sample caveat for verbatim surfacing.'],
+        },
+      ],
+    });
+    const text = deterministicFallback(result);
+    expect(text).toMatch(/Sample caveat for verbatim surfacing\./);
   });
 
   it('surfaces eliminatedSpotsOfNote when present', () => {
@@ -158,13 +166,15 @@ describe('serialiseForNarration', () => {
     expect(first).toHaveProperty('ranking_score');
     expect(first).toHaveProperty('quality_category');
     expect(first).toHaveProperty('is_firing');
-    expect(first).toHaveProperty('effective_size_ft');
+    expect(first).toHaveProperty('surf_height_ft_traditional');
     expect(first).toHaveProperty('active_hazards');
     expect(first).toHaveProperty('conditions_summary.swell_height_ft');
     expect(first).toHaveProperty('conditions_summary.swell_period_s');
     expect(first).toHaveProperty('conditions_summary.swell_direction_deg');
     expect(first).toHaveProperty('conditions_summary.wind_speed_kt');
     expect(first).toHaveProperty('conditions_summary.wind_direction_deg');
+    expect(first).toHaveProperty('conditions_summary.tide.phase');
+    expect(first).toHaveProperty('conditions_summary.tide.direction');
   });
 
   it('rounds drive minutes to integers', () => {

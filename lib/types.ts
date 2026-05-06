@@ -174,6 +174,18 @@ export interface SwellComponent {
   directionDeg: number;
 }
 
+export type TidePhase = 'low' | 'mid_low' | 'mid' | 'mid_high' | 'high';
+export type TideDirection = 'rising' | 'falling';
+
+export interface TideState {
+  /** Bucketed phase across the local tide cycle. `null` when fetch failed. */
+  phase: TidePhase | null;
+  /** Whether the tide is currently rising or falling. `null` when fetch failed. */
+  direction: TideDirection | null;
+  /** Sea level height (metres MSL) at the target time. `null` when fetch failed. */
+  heightM: number | null;
+}
+
 export interface LiveConditions {
   primarySwell: SwellComponent;
   secondarySwell: SwellComponent | null;
@@ -181,6 +193,8 @@ export interface LiveConditions {
   windSpeedKt: number;
   /** Wind direction FROM, in compass degrees. */
   windDirectionDeg: number;
+  /** Tide phase, direction, and height at the target time. */
+  tide: TideState;
   /** Hours from "now" to the forecast time used. Drives the certainty multiplier. */
   forecastHorizonHours: number;
   /** Epoch ms when this snapshot was fetched (drives cache + freshness display). */
@@ -205,8 +219,7 @@ export interface ConditionsSummary {
   swellDirectionDeg: number;
   windSpeedKt: number;
   windDirectionDeg: number;
-  /** Tide is not factored in v1; this is a free-form text field for narration. */
-  tideState: string;
+  tide: TideState;
   forecastHorizonHours: number;
 }
 

@@ -21,7 +21,7 @@ import {
   OPEN_METEO_MARINE_URL,
   OPEN_METEO_TIMEOUT_MS,
 } from '@/lib/config';
-import type { LiveConditions } from '@/lib/types';
+import type { LiveConditions, TideState } from '@/lib/types';
 import { TtlCache } from './cache';
 import { melbourneLocalToUtcMs } from './melbourneTime';
 
@@ -30,6 +30,7 @@ interface MarineHourly {
   swell_wave_height: (number | null)[];
   swell_wave_period: (number | null)[];
   swell_wave_direction: (number | null)[];
+  sea_level_height_msl: (number | null)[];
 }
 
 interface ForecastHourly {
@@ -73,7 +74,7 @@ async function fetchMarineHourly(lat: number, lng: number): Promise<MarineHourly
   const url =
     `${OPEN_METEO_MARINE_URL}` +
     `?latitude=${lat}&longitude=${lng}` +
-    `&hourly=swell_wave_height,swell_wave_period,swell_wave_direction` +
+    `&hourly=swell_wave_height,swell_wave_period,swell_wave_direction,sea_level_height_msl` +
     `&timezone=auto&forecast_days=7`;
 
   const json = await fetchJson<{ hourly: MarineHourly }>(url);
@@ -133,6 +134,72 @@ function nearestHourIndex(times: string[], targetIso: string): number {
 }
 
 /**
+ * Derive tide phase + direction from a hourly sea-level-height time series.
+ *
+ * Looks at a ±3-hour window around the target index. The local min and max in
+ * that window approximate the most recent low and high tide; the target's
+ * position between them buckets into a 5-step phase. Direction is determined
+ * by comparing the target hour against the next available hour.
+ *
+ * Returns nulls when the series has gaps near the target or the window is too
+ * narrow to be meaningful (e.g. target near the start/end of the array).
+ */
+function deriveTideState(
+  heights: (number | null)[],
+  targetIdx: number,
+): TideState {
+  const targetHeight = heights[targetIdx];
+  if (targetHeight === null || targetHeight === undefined) {
+    return { phase: null, direction: null, heightM: null };
+  }
+
+  const windowRadius = 3; // ±3 hours
+  const lo = Math.max(0, targetIdx - windowRadius);
+  const hi = Math.min(heights.length - 1, targetIdx + windowRadius);
+
+  let min = Infinity;
+  let max = -Infinity;
+  for (let i = lo; i <= hi; i++) {
+    const h = heights[i];
+    if (h === null || h === undefined) continue;
+    if (h < min) min = h;
+    if (h > max) max = h;
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min + 1e-6) {
+    // No meaningful tide swing in the window — flat or all nulls.
+    return { phase: null, direction: null, heightM: targetHeight };
+  }
+
+  const fraction = (targetHeight - min) / (max - min); // 0 = local low, 1 = local high
+  let phase: TideState['phase'];
+  if (fraction < 0.2) phase = 'low';
+  else if (fraction < 0.4) phase = 'mid_low';
+  else if (fraction < 0.6) phase = 'mid';
+  else if (fraction < 0.8) phase = 'mid_high';
+  else phase = 'high';
+
+  // Compare target with next 1-hour sample to get direction.
+  let direction: TideState['direction'] = null;
+  for (let i = targetIdx + 1; i <= hi; i++) {
+    const next = heights[i];
+    if (next === null || next === undefined) continue;
+    direction = next > targetHeight ? 'rising' : next < targetHeight ? 'falling' : null;
+    break;
+  }
+  if (direction === null) {
+    // Fall back: look backwards.
+    for (let i = targetIdx - 1; i >= lo; i--) {
+      const prev = heights[i];
+      if (prev === null || prev === undefined) continue;
+      direction = targetHeight > prev ? 'rising' : targetHeight < prev ? 'falling' : null;
+      break;
+    }
+  }
+
+  return { phase, direction, heightM: targetHeight };
+}
+
+/**
  * Fetch live conditions for a spot at a target time.
  *
  * @param lat        spot latitude
@@ -178,6 +245,13 @@ export async function fetchConditions(
     ? 0
     : Math.max(0, Math.round((targetMs - fetchedAt) / (60 * 60 * 1000)));
 
+  // Tide is best-effort — derived from sea_level_height_msl in the same marine
+  // payload. If the field is missing or all-null nearby, fall back to nulls;
+  // tideFactor will treat that as neutral (factor 1.0) with a caveat.
+  const tide = marine.sea_level_height_msl
+    ? deriveTideState(marine.sea_level_height_msl, mIdx)
+    : { phase: null, direction: null, heightM: null };
+
   return {
     primarySwell: {
       heightFt: heightM * M_TO_FT,
@@ -187,6 +261,7 @@ export async function fetchConditions(
     secondarySwell: null, // Open-Meteo Marine v1 does not expose secondary swell components.
     windSpeedKt: windKt,
     windDirectionDeg: windDirDeg,
+    tide,
     forecastHorizonHours: horizonHours,
     fetchedAt,
   };

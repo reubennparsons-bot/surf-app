@@ -305,6 +305,8 @@ wind_factor *= 0.95  # for second hour
 
 Tide is a smaller modifier — important but not dominant.
 
+**Implementation note (live since v2.2):** tide phase + direction are derived from Open-Meteo's `sea_level_height_msl` field, which is interpolated from coarse global ocean models rather than harmonic-station predictions. Accuracy is good enough for this 0.80–1.05 multiplier (model timing may be 20–40 min off real station times for any given bay). When the field is missing or `phase === null`, `tideFactor` returns 1.0 with a "tide unavailable" caveat — the recommendation never breaks on tide data alone.
+
 ### 4.1: Tide-state matching
 
 Each spot's database entry specifies tide preference and sensitivity.

@@ -219,7 +219,7 @@ The narration prompt receives this JSON structure as user-message content:
         "swell_direction": 205,
         "wind_speed": 8,
         "wind_direction": 320,
-        "tide_state": "rising to mid",
+        "tide": { "phase": "mid_high", "direction": "rising" },
         "forecast_horizon_hours": 18
       }
     }

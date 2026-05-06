@@ -19,6 +19,7 @@ import {
   NARRATION_MODEL,
   NARRATION_TIMEOUT_MS,
 } from '@/lib/config';
+import { toTraditionalFt } from '@/lib/scoring/heightScale';
 import type { RecommendationResult, ScoredSpot } from '@/lib/types';
 import { deterministicFallback } from './fallback';
 import { NARRATION_SYSTEM_PROMPT } from './prompt';
@@ -44,7 +45,7 @@ function snakeSpot(s: ScoredSpot) {
     tide_factor: Number(s.tideFactor.toFixed(2)),
     crowd_factor: Number(s.crowdFactor.toFixed(2)),
     certainty_multiplier: Number(s.certaintyMultiplier.toFixed(2)),
-    effective_size_ft: Number(s.effectiveSizeFt.toFixed(1)),
+    surf_height_ft_traditional: toTraditionalFt(s.effectiveSizeFt),
     active_hazards: s.activeHazards,
     caveats: s.caveats,
     conditions_summary: {
@@ -53,7 +54,10 @@ function snakeSpot(s: ScoredSpot) {
       swell_direction_deg: Math.round(s.conditionsSummary.swellDirectionDeg),
       wind_speed_kt: Math.round(s.conditionsSummary.windSpeedKt),
       wind_direction_deg: Math.round(s.conditionsSummary.windDirectionDeg),
-      tide_state: s.conditionsSummary.tideState,
+      tide: {
+        phase: s.conditionsSummary.tide.phase,
+        direction: s.conditionsSummary.tide.direction,
+      },
       forecast_horizon_hours: s.conditionsSummary.forecastHorizonHours,
     },
   };

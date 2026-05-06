@@ -108,7 +108,7 @@ function buildConditionsSummary(c: LiveConditions): ConditionsSummary {
     swellDirectionDeg: c.primarySwell.directionDeg,
     windSpeedKt: c.windSpeedKt,
     windDirectionDeg: c.windDirectionDeg,
-    tideState: 'not factored in v1',
+    tide: c.tide,
     forecastHorizonHours: c.forecastHorizonHours,
   };
 }
@@ -118,7 +118,7 @@ export function computeScore(inputs: ScoreInputs): ScoredSpotCore {
 
   const swellQ = swellQuality(spot, conditions.primarySwell);
   const wind = windFactor(spot, conditions);
-  const tide = tideFactor(spot);
+  const tide = tideFactor(spot, conditions.tide);
   const crowd = crowdFactor(spot, crowdCtx, user);
   const cert = certaintyMultiplier(conditions.forecastHorizonHours);
 
@@ -187,7 +187,7 @@ export function computeScore(inputs: ScoreInputs): ScoredSpotCore {
 export function preCrowdScore(spot: Spot, conditions: LiveConditions): number {
   const swellQ = swellQuality(spot, conditions.primarySwell);
   const wind = windFactor(spot, conditions);
-  const tide = tideFactor(spot);
+  const tide = tideFactor(spot, conditions.tide);
   const cert = certaintyMultiplier(conditions.forecastHorizonHours);
   return swellQ.total * wind.total * tide.factor * cert;
 }
