@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, type FormEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { MapPin } from 'lucide-react';
 import { EmailCapture } from '@/components/EmailCapture';
@@ -203,6 +203,7 @@ export default function Home() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [timing, setTiming] = useState<'today' | 'tomorrow' | 'specific'>('today');
   const [specificDate, setSpecificDate] = useState('');
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Result state
   const [result, setResult] = useState<RecommendationResult | null>(null);
@@ -419,7 +420,12 @@ export default function Home() {
                     name="timing"
                     value={t}
                     checked={timing === t}
-                    onChange={() => setTiming(t)}
+                    onChange={() => {
+                      setTiming(t);
+                      if (t === 'specific') {
+                        setTimeout(() => dateInputRef.current?.showPicker?.(), 50);
+                      }
+                    }}
                     className="sr-only"
                   />
                   {t === 'specific' ? 'Choose a date' : t}
@@ -428,6 +434,7 @@ export default function Home() {
             </div>
             {timing === 'specific' && (
               <input
+                ref={dateInputRef}
                 type="date"
                 value={specificDate}
                 onChange={(e) => setSpecificDate(e.target.value)}
