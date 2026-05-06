@@ -4,6 +4,7 @@ import { useState, useRef, type FormEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { MapPin } from 'lucide-react';
 import { EmailCapture } from '@/components/EmailCapture';
+import { FeedbackBanner } from '@/components/FeedbackBanner';
 import type {
   ActiveHazard,
   EliminationDetail,
@@ -195,10 +196,10 @@ const SKILL_OPTIONS: { value: SkillLevel; label: string; hint: string }[] = [
   { value: 'advanced', label: 'Advanced', hint: 'Overhead surf, reef breaks, heavy conditions' },
 ];
 
-const TIME_OF_DAY_OPTIONS: { value: TimeOfDay; label: string; hint: string }[] = [
-  { value: 'morning', label: 'Morning', hint: '7am' },
-  { value: 'midday', label: 'Midday', hint: '12pm' },
-  { value: 'evening', label: 'Evening', hint: '5pm' },
+const TIME_OF_DAY_OPTIONS: { value: TimeOfDay; label: string }[] = [
+  { value: 'morning', label: 'Morning' },
+  { value: 'midday', label: 'Midday' },
+  { value: 'evening', label: 'Evening' },
 ];
 
 export default function Home() {
@@ -473,7 +474,6 @@ export default function Home() {
                     className="sr-only"
                   />
                   <span className="block text-center font-medium capitalize">{opt.label}</span>
-                  <span className="block text-center text-xs opacity-70">{opt.hint}</span>
                 </label>
               ))}
             </div>
@@ -560,6 +560,8 @@ export default function Home() {
             Forecast {result.context.forecastHorizonHours}h ahead · baseline drive {formatDriveMin(result.context.baselineDriveMinutes)} ·{' '}
             {result.user.skill} session, {result.user.sessionTiming}, near {result.user.location.name}.
           </footer>
+
+          <FeedbackBanner />
 
           <EmailCapture />
         </>

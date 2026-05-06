@@ -51,20 +51,15 @@ export const SKILL_MIN_FORGIVENESS: Record<SkillLevel, ('forgiving' | 'moderate'
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
- * Effective size = swell_height_ft × period_multiplier(period_s).
- * Captures the surfer-known fact: "2ft @ 15s breaks bigger than 4ft @ 7s."
- *
- * period_multiplier = clamp(intercept + (period - reference_period) × coefficient, lower, upper)
- *
- * Calibration table (for reference):
- *   6s → 0.5    10s → 0.8    14s → 1.2    18s+ → 1.6
- *   8s → 0.6    12s → 1.0    16s → 1.4
+ * Practical depth-limited cap on breaker height, expressed as a ratio of
+ * swell height. The Komar-Gaughan formula in lib/scoring/effectiveSize.ts
+ * predicts the theoretical breaker height assuming no depth or refraction
+ * loss; this cap reins in pathological inputs (e.g. 1ft @ 25s) by enforcing
+ * the McCowan (1894) depth-limited breaking limit at typical 10–15ft
+ * beach-break depths. For realistic Victorian conditions the cap rarely
+ * binds.
  */
-export const PERIOD_MULTIPLIER_INTERCEPT = 0.5;
-export const PERIOD_MULTIPLIER_REFERENCE_PERIOD_S = 7;
-export const PERIOD_MULTIPLIER_COEFFICIENT = 0.1;
-export const PERIOD_MULTIPLIER_LOWER_BOUND = 0.5;
-export const PERIOD_MULTIPLIER_UPPER_BOUND = 1.6;
+export const EFFECTIVE_SIZE_MAX_RATIO_TO_SWELL = 3;
 
 /**
  * Sub-component weights for swell_quality:

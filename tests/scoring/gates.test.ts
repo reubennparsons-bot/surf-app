@@ -216,8 +216,8 @@ describe('Gate 1.7 — skill-conditions mismatch', () => {
     if (!r.passed) expect(r.reason).toBe('skill_above_user_ceiling');
   });
 
-  it('beginner at Smiths with 2ft @ 10s passes (effective 1.6ft)', () => {
-    expect(checkSkillConditionsGate(SMITHS, conditions({ primarySwell: { heightFt: 2, periodS: 10, directionDeg: 220 } }), { skill: 'beginner' }).passed).toBe(true);
+  it('beginner at Smiths with 1ft @ 10s passes (effective ~1.96ft K-G)', () => {
+    expect(checkSkillConditionsGate(SMITHS, conditions({ primarySwell: { heightFt: 1, periodS: 10, directionDeg: 220 } }), { skill: 'beginner' }).passed).toBe(true);
   });
 
   it('beginner blocked from Anglesea (forgiveness=moderate, beginner needs forgiving)', () => {
@@ -230,21 +230,21 @@ describe('Gate 1.7 — skill-conditions mismatch', () => {
     expect(checkSkillConditionsGate(TORQUAY_FB, conditions(), { skill: 'beginner' }).passed).toBe(false);
   });
 
-  it('improver ceiling = 5ft effective: 5ft @ 14s = 6ft → blocked', () => {
+  it('improver ceiling = 5ft: 5ft @ 14s = 8.1ft K-G → blocked', () => {
     const r = checkSkillConditionsGate(JAN_JUC, conditions({ primarySwell: { heightFt: 5, periodS: 14, directionDeg: 225 } }), { skill: 'improver' });
     expect(r.passed).toBe(false);
     if (!r.passed) expect(r.reason).toBe('skill_above_user_ceiling');
   });
 
-  it('improver at Jan Juc with 4ft @ 12s passes (effective 4ft)', () => {
-    expect(checkSkillConditionsGate(JAN_JUC, conditions({ primarySwell: { heightFt: 4, periodS: 12, directionDeg: 225 } }), { skill: 'improver' }).passed).toBe(true);
+  it('improver at Jan Juc with 2.5ft @ 10s passes (effective ~4.1ft K-G)', () => {
+    expect(checkSkillConditionsGate(JAN_JUC, conditions({ primarySwell: { heightFt: 2.5, periodS: 10, directionDeg: 225 } }), { skill: 'improver' }).passed).toBe(true);
   });
 
-  it('intermediate ceiling = 8ft: 6ft @ 14s = 7.2ft → passes', () => {
-    expect(checkSkillConditionsGate(BELLS, conditions({ primarySwell: { heightFt: 6, periodS: 14, directionDeg: 205 } }), { skill: 'intermediate' }).passed).toBe(true);
+  it('intermediate ceiling = 8ft: 4ft @ 14s = 6.8ft K-G → passes', () => {
+    expect(checkSkillConditionsGate(BELLS, conditions({ primarySwell: { heightFt: 4, periodS: 14, directionDeg: 205 } }), { skill: 'intermediate' }).passed).toBe(true);
   });
 
-  it('intermediate ceiling = 8ft: 8ft @ 14s = 9.6ft → blocked', () => {
+  it('intermediate ceiling = 8ft: 8ft @ 14s = 11.8ft K-G → blocked', () => {
     expect(checkSkillConditionsGate(BELLS, conditions({ primarySwell: { heightFt: 8, periodS: 14, directionDeg: 205 } }), { skill: 'intermediate' }).passed).toBe(false);
   });
 
@@ -271,12 +271,14 @@ describe('runGates composition', () => {
   });
 
   it('beginner at Smiths in clean small surf passes all gates', () => {
-    expect(runGates(SMITHS, conditions({ primarySwell: { heightFt: 2, periodS: 10, directionDeg: 220 }, windDirectionDeg: 337.5, windSpeedKt: 5 }), { skill: 'beginner' }).passed).toBe(true);
+    // 1.5ft @ 9s K-G ≈ 2.6ft — under beginner ceiling of 3.
+    expect(runGates(SMITHS, conditions({ primarySwell: { heightFt: 1.5, periodS: 9, directionDeg: 220 }, windDirectionDeg: 337.5, windSpeedKt: 5 }), { skill: 'beginner' }).passed).toBe(true);
   });
 
   it('beginner at Sorrento in clean small surf passes all gates', () => {
     // Sorrento offshore=45° (NE). 45°+180° onshore = 225°. Use wind from 45° (offshore).
-    expect(runGates(SORRENTO, conditions({ primarySwell: { heightFt: 2.5, periodS: 9, directionDeg: 225 }, windDirectionDeg: 45, windSpeedKt: 5 }), { skill: 'beginner' }).passed).toBe(true);
+    // 2ft @ 7s K-G ≈ 2.96ft — under beginner ceiling of 3 and at Sorrento's workingSize.min.
+    expect(runGates(SORRENTO, conditions({ primarySwell: { heightFt: 2, periodS: 7, directionDeg: 225 }, windDirectionDeg: 45, windSpeedKt: 5 }), { skill: 'beginner' }).passed).toBe(true);
   });
 });
 
@@ -341,17 +343,18 @@ describe('SAFETY-CRITICAL: Gate 1.7 — improver blocked from Jan Juc when effec
   });
 
   it('intermediate not blocked at the same conditions (ceiling 8ft)', () => {
+    // 4ft @ 14s K-G ≈ 6.8ft — over improver 5 ceiling, under intermediate 8.
     const c = conditions({
-      primarySwell: { heightFt: 5, periodS: 14, directionDeg: 225 },
+      primarySwell: { heightFt: 4, periodS: 14, directionDeg: 225 },
       windDirectionDeg: 315,
       windSpeedKt: 8,
     });
     expect(runGates(JAN_JUC, c, { skill: 'intermediate' }).passed).toBe(true);
   });
 
-  it('improver passes when effective size <= 5ft (4ft @ 12s = 4ft)', () => {
+  it('improver passes when effective size <= 5ft (3ft @ 10s = 4.7ft K-G)', () => {
     const c = conditions({
-      primarySwell: { heightFt: 4, periodS: 12, directionDeg: 225 },
+      primarySwell: { heightFt: 3, periodS: 10, directionDeg: 225 },
       windDirectionDeg: 315,
       windSpeedKt: 8,
     });

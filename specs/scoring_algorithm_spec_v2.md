@@ -126,28 +126,52 @@ Note: this uses **effective size** (Layer 2 calculation), not raw swell height. 
 
 For spots that pass all gates, compute swell quality on a 0-100 scale.
 
-### 2.1: Effective size calculation
+### 2.1: Effective size calculation (Komar-Gaughan 1972)
 
-**Critical concept:** Period multiplies size. A 3ft swell at 14s breaks bigger than a 5ft swell at 7s. The algorithm must compute *effective surf size* before scoring against the spot's sweet spot.
+**Critical concept:** Period non-linearly multiplies wave energy, and an open-ocean swell breaks substantially bigger than its raw `swell_wave_height`. The algorithm computes *effective breaker height* via the standard physics formula before scoring against the spot's sweet spot or applying the per-skill ceiling.
 
+**Formula:**
 ```
-period_multiplier = clamp(0.5 + (period - 7) × 0.1, 0.5, 1.6)
-
-effective_size = swell_height × period_multiplier
+Hb = 0.39 · g^(1/5) · (T · Hs²)^(2/5)
 ```
 
-Curve calibration:
-- 6s period: multiplier 0.5 (windswell, breaks smaller than nominal)
-- 8s: 0.6
-- 10s: 0.8
-- 12s: 1.0 (nominal)
-- 14s: 1.2
-- 16s: 1.4
-- 18s+: 1.6 (maxes out — diminishing returns)
+Where:
+- `Hb` = breaker height (output)
+- `Hs` = significant deep-water swell height (input — Open-Meteo `swell_wave_height`)
+- `T` = wave period in seconds (Open-Meteo `swell_wave_period`)
+- `g` = gravitational acceleration (32.18 ft/s² in imperial)
 
-This is the surfer-known fact: "2ft @ 15s breaks bigger than 4ft @ 7s." Effective size captures this.
+**Source:** Komar, P. D., & Gaughan, M. K. (1972). "Airy Wave Theory and Breaker Height Prediction." *Proceedings of the 13th International Conference on Coastal Engineering*, ASCE. Derived from Airy wave theory + four independent lab and field datasets. The formula is dimensionally consistent — works in either metric or imperial without unit conversion.
 
-**Tunable parameters:** the curve coefficients.
+**Practical cap:**
+```
+Hb_capped = min(Hb, 3 × Hs)
+```
+
+Komar-Gaughan predicts the theoretical breaker height in shallow water assuming no depth or refraction loss. Real spots are bounded by the McCowan (1894) depth-limited breaking limit `Hb ≈ 0.78 × depth`; for typical 10–15ft beach-break depths this corresponds to roughly 3× swell height. The cap rarely binds for realistic Victorian conditions — it's a defensive ceiling against pathological inputs (e.g. 1ft swell at 25s+ period).
+
+**Worked examples (rounded to 0.1 ft):**
+
+| Hs (ft) | T (s) | K-G Hb (ft) |
+|--:|--:|--:|
+| 2 | 8  | 3.6 |
+| 3 | 8  | 4.3 |
+| 3 | 10 | 4.9 |
+| 3 | 14 | 5.4 |
+| 4 | 7  | 5.2 |
+| 4 | 12 | 6.4 |
+| 5 | 14 | 8.1 |
+| 6 | 12 | 8.4 |
+| 8 | 12 | 11.1 |
+| 8 | 16 | 12.5 |
+
+**Implementation:** `lib/scoring/effectiveSize.ts` exports `breakerHeightFt(swellHeightFt, periodS)` and a back-compat alias `effectiveSize` so callsites (Gate 1.7, swellQuality Layer 2, hazards, narration) consume the new formula transparently.
+
+**Cross-check:** the Stormsurf "Wave Categories" table (https://www.stormsurf.com/page2/papers/category_short.html) maps `(Hs, T)` to observed face-height ranges at typical breaks. Use it for empirical calibration if/when the formula needs spot-specific tuning. K-G generally predicts the upper edge of those ranges; spot-level `forgiveness` and `sizeSensitivity` parameters absorb residual error.
+
+**Historical note:** Prior to v2.1, the formula was a linear period multiplier `clamp(0.5 + (period - 7) × 0.1, 0.5, 1.6) × Hs`. This under-predicted long-period swells and let some long-period sessions slip through Gate 1.7 that should have been blocked. The K-G replacement is the v1 calibration owner's call, not a hidden change — it materially affects which spots are gated for which skill levels under Victorian SW long-period swells.
+
+**Tunable parameters:** the cap ratio (`EFFECTIVE_SIZE_MAX_RATIO_TO_SWELL` in `lib/config.ts`).
 
 ### 2.2: Three sub-components of swell quality
 

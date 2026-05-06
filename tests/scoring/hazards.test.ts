@@ -31,12 +31,12 @@ describe('hazard predicates', () => {
   });
 
   it('large_size_below_advanced fires only for non-advanced AND effective size > 5', () => {
-    // 5ft @ 14s = 6ft effective → > 5
+    // 5ft @ 14s = 8.1ft effective (K-G) → > 5
     const big = mkConditions({ primarySwell: { heightFt: 5, periodS: 14, directionDeg: 200 } });
     expect(HAZARD_PREDICATES.large_size_below_advanced(stubSpot, big, { skill: 'intermediate' })).toBe(true);
     expect(HAZARD_PREDICATES.large_size_below_advanced(stubSpot, big, { skill: 'advanced' })).toBe(false);
-    // 3ft @ 12s = 3ft effective → not big enough
-    const small = mkConditions({ primarySwell: { heightFt: 3, periodS: 12, directionDeg: 200 } });
+    // 2ft @ 10s = 3.4ft effective (K-G) → not big enough
+    const small = mkConditions({ primarySwell: { heightFt: 2, periodS: 10, directionDeg: 200 } });
     expect(HAZARD_PREDICATES.large_size_below_advanced(stubSpot, small, { skill: 'intermediate' })).toBe(false);
   });
 

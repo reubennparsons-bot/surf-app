@@ -1,47 +1,70 @@
 import { describe, it, expect } from 'vitest';
-import { effectiveSize, periodMultiplier } from '@/lib/scoring/effectiveSize';
+import { breakerHeightFt, effectiveSize } from '@/lib/scoring/effectiveSize';
 
-describe('periodMultiplier', () => {
-  // Spec calibration table:
-  //   6s → 0.5    10s → 0.8    14s → 1.2    18s+ → 1.6
-  //   8s → 0.6    12s → 1.0    16s → 1.4
-  it.each([
-    [6, 0.5],
-    [7, 0.5], // exact reference; raw = 0.5, clamped to lower bound
-    [8, 0.6],
-    [10, 0.8],
-    [12, 1.0],
-    [14, 1.2],
-    [16, 1.4],
-    [18, 1.6],
-    [22, 1.6], // clamped to upper bound
-  ])('period %is → multiplier %f', (period, expected) => {
-    expect(periodMultiplier(period)).toBeCloseTo(expected, 5);
+/**
+ * Komar-Gaughan reference values, computed from
+ *   Hb = 0.39 × g^(1/5) × (T × Hs²)^(2/5)
+ * with g = 32.18 ft/s². Equivalent to ≈ 0.78 × T^(2/5) × Hs^(4/5).
+ *
+ *   3ft @ 14s ≈ 5.40 ft
+ *   5ft @ 14s ≈ 8.13 ft
+ *   8ft @ 12s ≈ 11.13 ft
+ *   2ft @ 15s ≈ 4.02 ft
+ *   4ft @ 7s  ≈ 5.15 ft
+ */
+describe('breakerHeightFt (Komar-Gaughan)', () => {
+  it('3ft @ 14s ≈ 5.40 ft', () => {
+    expect(breakerHeightFt(3, 14)).toBeCloseTo(5.40, 1);
   });
 
-  it('clamps short periods to 0.5', () => {
-    expect(periodMultiplier(3)).toBe(0.5);
-    expect(periodMultiplier(0)).toBe(0.5);
+  it('5ft @ 14s ≈ 8.13 ft', () => {
+    expect(breakerHeightFt(5, 14)).toBeCloseTo(8.13, 1);
   });
 
-  it('clamps long periods to 1.6', () => {
-    expect(periodMultiplier(25)).toBe(1.6);
-  });
-});
-
-describe('effectiveSize', () => {
-  // Surfer-known: "2ft @ 15s breaks bigger than 4ft @ 7s"
-  it('captures period dominance over raw height', () => {
-    const longPeriodSmall = effectiveSize(2, 15);   // 2 × 1.3 = 2.6
-    const shortPeriodBig = effectiveSize(4, 7);     // 4 × 0.5 = 2.0
-    expect(longPeriodSmall).toBeGreaterThan(shortPeriodBig);
+  it('8ft @ 12s ≈ 11.13 ft', () => {
+    expect(breakerHeightFt(8, 12)).toBeCloseTo(11.13, 1);
   });
 
-  it('5ft @ 14s = 6ft effective (key Gate-1.7 trigger for improver ceiling)', () => {
-    expect(effectiveSize(5, 14)).toBeCloseTo(6.0, 5);
+  it('2ft @ 15s ≈ 4.02 ft', () => {
+    expect(breakerHeightFt(2, 15)).toBeCloseTo(4.02, 1);
   });
 
-  it('3ft @ 12s = 3ft effective', () => {
-    expect(effectiveSize(3, 12)).toBeCloseTo(3.0, 5);
+  it('4ft @ 7s ≈ 5.15 ft', () => {
+    expect(breakerHeightFt(4, 7)).toBeCloseTo(5.15, 1);
+  });
+
+  it('returns 0 for zero or negative swell height (defensive)', () => {
+    expect(breakerHeightFt(0, 14)).toBe(0);
+    expect(breakerHeightFt(-1, 14)).toBe(0);
+  });
+
+  it('returns 0 for zero or negative period (defensive)', () => {
+    expect(breakerHeightFt(3, 0)).toBe(0);
+    expect(breakerHeightFt(3, -5)).toBe(0);
+  });
+
+  it('caps at 3× swell height for pathological inputs', () => {
+    // 1ft @ 50s: K-G raw ≈ 0.78 × 50^0.4 × 1^0.8 ≈ 3.73 → cap binds at 3.
+    expect(breakerHeightFt(1, 50)).toBe(3);
+  });
+
+  it('is monotone-increasing in swell height (T fixed)', () => {
+    const T = 12;
+    const heights = [1, 2, 3, 4, 5, 8, 10];
+    for (let i = 1; i < heights.length; i++) {
+      expect(breakerHeightFt(heights[i], T)).toBeGreaterThan(breakerHeightFt(heights[i - 1], T));
+    }
+  });
+
+  it('is monotone-increasing in period (Hs fixed)', () => {
+    const Hs = 4;
+    const periods = [6, 8, 10, 12, 14, 16, 18];
+    for (let i = 1; i < periods.length; i++) {
+      expect(breakerHeightFt(Hs, periods[i])).toBeGreaterThan(breakerHeightFt(Hs, periods[i - 1]));
+    }
+  });
+
+  it('exposes effectiveSize as a back-compat alias', () => {
+    expect(effectiveSize(5, 14)).toBe(breakerHeightFt(5, 14));
   });
 });

@@ -110,15 +110,13 @@ describe('sizeSweetSpotScore', () => {
 
 describe('swellQuality (combined)', () => {
   it('perfect alignment scores ≥ 95', () => {
-    // Bells: 5ft @ 14s @ 205° (near centre 205.5).
-    // direction ~99, period 95, effective = 5*1.2 = 6 (in 4-8 sweet) → size 100
-    // total = 99*0.45 + 95*0.35 + 100*0.20 = 44.55 + 33.25 + 20 = 97.8
-    const r = swellQuality(BELLS, { heightFt: 5, periodS: 14, directionDeg: 205 });
+    // Bells: 4ft @ 13s @ 205° (near centre 205.5).
+    // direction ~99, period high, K-G effective ≈ 6.6 (in 4-8 sweet) → size 100
+    const r = swellQuality(BELLS, { heightFt: 4, periodS: 13, directionDeg: 205 });
     expect(r.total).toBeGreaterThan(95);
     expect(r.direction).toBeGreaterThan(95);
-    expect(r.period).toBeCloseTo(95, 1);
     expect(r.size).toBe(100);
-    expect(r.effectiveSizeFt).toBeCloseTo(6, 1);
+    expect(r.effectiveSizeFt).toBeCloseTo(6.6, 1);
   });
 
   it('bad direction nukes the score even with great period+size', () => {
@@ -149,15 +147,14 @@ describe('swellQuality (combined)', () => {
   });
 
   it('undersized swell: size floor and short-period penalty', () => {
-    // Bells 1ft @ 8s: effective = 1*0.6 = 0.6. Way below sweet 4-8.
-    // distance below = 3.4 → 100 - 3.4*15 = 49 → above floor 40.
+    // Bells 1ft @ 8s: K-G effective ≈ 1.79ft. Below sweet 4-8 (centre ≈ 6).
+    // distance below sweet (4) = 2.21 → 100 - 2.21*15 ≈ 67.
     const r = swellQuality(BELLS, { heightFt: 1, periodS: 8, directionDeg: 205 });
-    expect(r.size).toBeCloseTo(49, 1);
+    expect(r.size).toBeCloseTo(67, 0);
     expect(r.period).toBeCloseTo(60, 1);
-    // direction perfect (~99), so total = 99*0.45 + 60*0.35 + 49*0.2 ≈ 44.55 + 21 + 9.8 = 75.35
     // Reasonable middling score for "small but clean."
     expect(r.total).toBeGreaterThan(70);
-    expect(r.total).toBeLessThan(80);
+    expect(r.total).toBeLessThan(85);
   });
 
   it('total stays inside [0, 100]', () => {

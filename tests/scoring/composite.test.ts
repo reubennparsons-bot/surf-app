@@ -285,8 +285,9 @@ describe('scoreAll', () => {
   });
 
   it('beginner gets only beginner-floor + forgiving spots; never sees Bells/Bells Bowl', () => {
+    // 1.5ft @ 9s K-G ≈ 2.6ft — under beginner ceiling of 3ft.
     const c = conditions({
-      primarySwell: { heightFt: 2, periodS: 10, directionDeg: 225 },
+      primarySwell: { heightFt: 1.5, periodS: 9, directionDeg: 225 },
       windDirectionDeg: 337.5,
       windSpeedKt: 5,
     });
