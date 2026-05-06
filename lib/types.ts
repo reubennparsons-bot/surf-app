@@ -297,11 +297,13 @@ export type LocationInput =
   | { kind: 'coords'; lat: number; lng: number; name?: string }
   | { kind: 'text'; query: string };
 
+export type TimeOfDay = 'morning' | 'midday' | 'evening';
+
 export type TimingInput =
-  | { kind: 'today' }
-  | { kind: 'tomorrow' }
-  /** ISO 8601 date+time string in local Victorian time. */
-  | { kind: 'specific'; iso: string };
+  | { kind: 'today'; timeOfDay: TimeOfDay }
+  | { kind: 'tomorrow'; timeOfDay: TimeOfDay }
+  /** date is "YYYY-MM-DD" in Melbourne local time. */
+  | { kind: 'specific'; date: string; timeOfDay: TimeOfDay };
 
 export interface RecommendRequest {
   location: LocationInput;

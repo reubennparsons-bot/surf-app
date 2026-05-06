@@ -12,6 +12,8 @@ import type {
   RecommendationResult,
   ScoredSpot,
   SkillLevel,
+  TimeOfDay,
+  TimingInput,
 } from '@/lib/types';
 
 // ─── Types for the NDJSON stream ────────────────────────────────────────────
@@ -109,7 +111,7 @@ function SpotCard({ spot }: { spot: ScoredSpot }) {
         <div>
           <dt className="text-zinc-500 dark:text-zinc-400">Surf height</dt>
           <dd className="font-medium text-zinc-800 dark:text-zinc-200">
-            {c.swellHeightFt.toFixed(1)}ft
+            {spot.effectiveSizeFt.toFixed(1)}ft
           </dd>
         </div>
         <div className="col-span-2 sm:col-span-1">
@@ -193,6 +195,12 @@ const SKILL_OPTIONS: { value: SkillLevel; label: string; hint: string }[] = [
   { value: 'advanced', label: 'Advanced', hint: 'Overhead surf, reef breaks, heavy conditions' },
 ];
 
+const TIME_OF_DAY_OPTIONS: { value: TimeOfDay; label: string; hint: string }[] = [
+  { value: 'morning', label: 'Morning', hint: '7am' },
+  { value: 'midday', label: 'Midday', hint: '12pm' },
+  { value: 'evening', label: 'Evening', hint: '5pm' },
+];
+
 export default function Home() {
   const [phase, setPhase] = useState<Phase>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -203,6 +211,7 @@ export default function Home() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [timing, setTiming] = useState<'today' | 'tomorrow' | 'specific'>('today');
   const [specificDate, setSpecificDate] = useState('');
+  const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('morning');
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Result state
@@ -218,10 +227,10 @@ export default function Home() {
     setNarration('');
     setNarrationFallback(false);
 
-    const timingPayload =
+    const timingPayload: TimingInput =
       timing === 'specific' && specificDate
-        ? { kind: 'specific' as const, iso: new Date(`${specificDate}T08:00:00`).toISOString() }
-        : { kind: timing === 'specific' ? ('today' as const) : timing };
+        ? { kind: 'specific', date: specificDate, timeOfDay }
+        : { kind: timing === 'specific' ? 'today' : timing, timeOfDay };
 
     const body: unknown = {
       location: coords
@@ -441,6 +450,33 @@ export default function Home() {
                 required
               />
             )}
+
+            <p className="mt-3 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              Time of day
+            </p>
+            <div className="mt-1.5 grid grid-cols-3 gap-2">
+              {TIME_OF_DAY_OPTIONS.map((opt) => (
+                <label
+                  key={opt.value}
+                  className={`cursor-pointer rounded-md border px-3 py-2 text-sm transition-colors ${
+                    timeOfDay === opt.value
+                      ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                      : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="timeOfDay"
+                    value={opt.value}
+                    checked={timeOfDay === opt.value}
+                    onChange={() => setTimeOfDay(opt.value)}
+                    className="sr-only"
+                  />
+                  <span className="block text-center font-medium capitalize">{opt.label}</span>
+                  <span className="block text-center text-xs opacity-70">{opt.hint}</span>
+                </label>
+              ))}
+            </div>
           </fieldset>
 
           {/* Submit */}

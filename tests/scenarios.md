@@ -36,7 +36,7 @@ curl -s -X POST http://localhost:3000/api/recommend \
   -d '{
     "location": { "kind": "text", "query": "Melbourne" },
     "skill": "intermediate",
-    "timing": { "kind": "today" }
+    "timing": { "kind": "today", "timeOfDay": "morning" }
   }' | jq .
 ```
 
@@ -61,7 +61,7 @@ curl -s -X POST http://localhost:3000/api/recommend \
   -d '{
     "location": { "kind": "text", "query": "Melbourne" },
     "skill": "beginner",
-    "timing": { "kind": "tomorrow" }
+    "timing": { "kind": "tomorrow", "timeOfDay": "morning" }
   }' | jq .
 ```
 
@@ -90,7 +90,7 @@ curl -s -X POST http://localhost:3000/api/recommend \
   -d '{
     "location": { "kind": "text", "query": "Geelong" },
     "skill": "improver",
-    "timing": { "kind": "specific", "iso": "2026-05-10T08:00" }
+    "timing": { "kind": "specific", "date": "2026-05-10", "timeOfDay": "morning" }
   }' | jq .
 ```
 
@@ -119,7 +119,7 @@ curl -s -X POST http://localhost:3000/api/recommend \
   -d '{
     "location": { "kind": "text", "query": "Torquay" },
     "skill": "improver",
-    "timing": { "kind": "today" }
+    "timing": { "kind": "today", "timeOfDay": "morning" }
   }' | jq .
 ```
 
@@ -142,7 +142,7 @@ curl -s -X POST http://localhost:3000/api/recommend \
   -d '{
     "location": { "kind": "coords", "lat": -38.3686, "lng": 144.2814, "name": "Bells Beach" },
     "skill": "advanced",
-    "timing": { "kind": "today" }
+    "timing": { "kind": "today", "timeOfDay": "morning" }
   }' | jq .
 ```
 
@@ -167,7 +167,7 @@ PowerShell doesn't ship with `curl` by default (the `curl` alias points at
 $body = @{
   location = @{ kind = 'text'; query = 'Melbourne' }
   skill = 'intermediate'
-  timing = @{ kind = 'today' }
+  timing = @{ kind = 'today'; timeOfDay = 'morning' }
 } | ConvertTo-Json -Depth 5
 
 Invoke-RestMethod -Method Post -Uri 'http://localhost:3000/api/recommend' `
@@ -186,5 +186,6 @@ Or call `scripts/smoke-api.ts` for a pre-canned set of requests.
 | `skill: "expert"` | `400 invalid_input` (must be one of beginner/improver/intermediate/advanced) |
 | `location.kind: "text", query: ""` | `400 invalid_input` |
 | `location.kind: "text", query: "Mars"` | `400 geocoding_failed` |
-| `timing: { kind: "specific", iso: "not-a-date" }` | `400 invalid_input` |
+| `timing: { kind: "specific", date: "not-a-date", timeOfDay: "morning" }` | `400 invalid_input` |
+| `timing: { kind: "today" }` (missing timeOfDay) | `400 invalid_input` |
 | Open-Meteo down (mock by spoofing DNS or shutting off internet) | `503 conditions_unavailable` |

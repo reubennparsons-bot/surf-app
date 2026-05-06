@@ -51,7 +51,7 @@ const scenarios: Scenario[] = [
     body: {
       location: { kind: 'text', query: 'Melbourne' },
       skill: 'intermediate',
-      timing: { kind: 'today' },
+      timing: { kind: 'today', timeOfDay: 'morning' },
     },
     expect: {
       ok: true,
@@ -74,7 +74,7 @@ const scenarios: Scenario[] = [
     body: {
       location: { kind: 'text', query: 'Melbourne' },
       skill: 'beginner',
-      timing: { kind: 'today' },
+      timing: { kind: 'today', timeOfDay: 'morning' },
     },
     expect: {
       ok: true,
@@ -89,11 +89,12 @@ const scenarios: Scenario[] = [
       skill: 'improver',
       timing: {
         kind: 'specific',
-        iso: (() => {
+        date: (() => {
           const d = new Date(Date.now() + 4 * 24 * 60 * 60 * 1000);
           const pad = (n: number) => n.toString().padStart(2, '0');
-          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T08:00`;
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
         })(),
+        timeOfDay: 'morning',
       },
     },
     expect: {

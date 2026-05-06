@@ -32,6 +32,11 @@ export const maxDuration = 60;
 import { spots as ALL_SPOTS } from '@/data/spots';
 import { VIC_SCHOOL_HOLIDAYS_2026 } from '@/lib/config';
 import { geocode } from '@/lib/conditions/geocoding';
+import {
+  MELBOURNE_TZ,
+  melbourneDateOnly,
+  melbourneLocalToUtcMs,
+} from '@/lib/conditions/melbourneTime';
 import { fetchConditions } from '@/lib/conditions/openMeteo';
 import { streamNarration } from '@/lib/narration/client';
 import { deterministicFallback } from '@/lib/narration/fallback';
@@ -45,6 +50,7 @@ import {
   type RequestContext,
   type SkillLevel,
   type Spot,
+  type TimeOfDay,
   type TimingInput,
   type Visibility,
 } from '@/lib/types';
@@ -121,19 +127,28 @@ function validateLocation(raw: unknown): Validation<LocationInput> {
   return { ok: false, message: 'location.kind must be "coords" or "text"' };
 }
 
+const TIME_OF_DAY_SET: ReadonlySet<TimeOfDay> = new Set(['morning', 'midday', 'evening']);
+
+function isTimeOfDay(v: unknown): v is TimeOfDay {
+  return typeof v === 'string' && TIME_OF_DAY_SET.has(v as TimeOfDay);
+}
+
 function validateTiming(raw: unknown): Validation<TimingInput> {
   if (typeof raw !== 'object' || raw === null) {
     return { ok: false, message: 'timing must be an object' };
   }
   const t = raw as Record<string, unknown>;
+  if (!isTimeOfDay(t.timeOfDay)) {
+    return { ok: false, message: 'timing.timeOfDay must be "morning", "midday", or "evening"' };
+  }
   if (t.kind === 'today' || t.kind === 'tomorrow') {
-    return { ok: true, value: { kind: t.kind } };
+    return { ok: true, value: { kind: t.kind, timeOfDay: t.timeOfDay } };
   }
   if (t.kind === 'specific') {
-    if (typeof t.iso !== 'string' || Number.isNaN(Date.parse(t.iso))) {
-      return { ok: false, message: 'timing.iso must be a parseable ISO date-time string' };
+    if (typeof t.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(t.date)) {
+      return { ok: false, message: 'timing.date must be a "YYYY-MM-DD" string' };
     }
-    return { ok: true, value: { kind: 'specific', iso: t.iso } };
+    return { ok: true, value: { kind: 'specific', date: t.date, timeOfDay: t.timeOfDay } };
   }
   return { ok: false, message: 'timing.kind must be "today", "tomorrow", or "specific"' };
 }
@@ -153,77 +168,50 @@ async function resolveLocation(
 
 // ─── Time resolution ───────────────────────────────────────────────────────
 
-const MELBOURNE_TZ = 'Australia/Melbourne';
+const TIME_OF_DAY_HOURS: Record<TimeOfDay, number> = {
+  morning: 7,
+  midday: 12,
+  evening: 17,
+};
 
-function formatMelbourneIso(date: Date): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: MELBOURNE_TZ,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(date);
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
-  // Round minutes down to the hour — Open-Meteo hourly data is on the hour.
-  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:00`;
+function dateForTiming(timing: TimingInput, now: Date): string {
+  if (timing.kind === 'specific') return timing.date;
+  if (timing.kind === 'today') return melbourneDateOnly(now);
+  return melbourneDateOnly(new Date(now.getTime() + 24 * 60 * 60 * 1000));
 }
 
-function melbourneDateOnly(date: Date): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: MELBOURNE_TZ,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date);
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
-  return `${get('year')}-${get('month')}-${get('day')}`;
-}
-
+/**
+ * Returns the Melbourne-local target string ("YYYY-MM-DDTHH:00") used to look
+ * up Open-Meteo's hourly arrays. Both Open-Meteo (timezone=auto) and this
+ * string are naive Melbourne-local — so Date.parse mis-interprets both
+ * identically and the relative match in nearestHourIndex still finds the right
+ * hour. For absolute UTC math (e.g. forecast horizon hours), use
+ * melbourneLocalToUtcMs instead.
+ */
 function resolveTargetIso(timing: TimingInput, now: Date = new Date()): string {
-  if (timing.kind === 'specific') {
-    // Caller-supplied ISO; assumed to be Melbourne local. Normalise to hour.
-    const d = new Date(timing.iso);
-    if (!Number.isNaN(d.getTime())) return formatMelbourneIso(d);
-    return timing.iso;
-  }
-  if (timing.kind === 'today') {
-    const target = new Date(now.getTime() + 60 * 60 * 1000);
-    return formatMelbourneIso(target);
-  }
-  // tomorrow → 8am Melbourne local
-  const tomorrowDate = melbourneDateOnly(new Date(now.getTime() + 24 * 60 * 60 * 1000));
-  return `${tomorrowDate}T08:00`;
+  const hh = String(TIME_OF_DAY_HOURS[timing.timeOfDay]).padStart(2, '0');
+  return `${dateForTiming(timing, now)}T${hh}:00`;
 }
 
 function describeTiming(timing: TimingInput, now: Date = new Date()): string {
-  if (timing.kind === 'today') return 'today';
-  if (timing.kind === 'tomorrow') return 'tomorrow morning';
-
-  const target = new Date(timing.iso);
-  if (Number.isNaN(target.getTime())) return 'the requested session';
+  const tod = timing.timeOfDay;
+  if (timing.kind === 'today') return `this ${tod}`;
+  if (timing.kind === 'tomorrow') return `tomorrow ${tod}`;
 
   const todayDate = melbourneDateOnly(now);
-  const targetDate = melbourneDateOnly(target);
-  if (targetDate === todayDate) return 'today';
-
   const tomorrowDate = melbourneDateOnly(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+  if (timing.date === todayDate) return `this ${tod}`;
+  if (timing.date === tomorrowDate) return `tomorrow ${tod}`;
+
+  // Render the day name in Melbourne TZ. Pick noon Melbourne to avoid any
+  // edge-of-day weekday-rollover ambiguity.
+  const targetMs = melbourneLocalToUtcMs(`${timing.date}T12:00`);
+  if (Number.isNaN(targetMs)) return `the requested ${tod}`;
   const dayName = new Intl.DateTimeFormat('en-AU', {
     timeZone: MELBOURNE_TZ,
     weekday: 'long',
-  }).format(target);
-  const hour = parseInt(
-    new Intl.DateTimeFormat('en-AU', {
-      timeZone: MELBOURNE_TZ,
-      hour: 'numeric',
-      hour12: false,
-    }).format(target),
-    10,
-  );
-  const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
-  if (targetDate === tomorrowDate) return `tomorrow ${timeOfDay}`;
-  return `${dayName} ${timeOfDay}`;
+  }).format(new Date(targetMs));
+  return `${dayName} ${tod}`;
 }
 
 // ─── Visibility ────────────────────────────────────────────────────────────
@@ -265,10 +253,12 @@ function seasonForMelbourneDate(target: Date): 'summer' | 'autumn' | 'winter' | 
 }
 
 function buildContext(targetIso: string, generatedAt: number): RequestContext {
-  const targetDate = new Date(targetIso);
+  // targetIso is naive Melbourne local — convert to true UTC ms for horizon math.
+  const targetMs = melbourneLocalToUtcMs(targetIso);
+  const targetDate = new Date(targetMs);
   const horizonHours = Math.max(
     0,
-    Math.round((targetDate.getTime() - generatedAt) / (60 * 60 * 1000)),
+    Math.round((targetMs - generatedAt) / (60 * 60 * 1000)),
   );
   return {
     forecastHorizonHours: horizonHours,

@@ -23,6 +23,7 @@ import {
 } from '@/lib/config';
 import type { LiveConditions } from '@/lib/types';
 import { TtlCache } from './cache';
+import { melbourneLocalToUtcMs } from './melbourneTime';
 
 interface MarineHourly {
   time: string[];
@@ -104,6 +105,12 @@ async function fetchForecastHourly(lat: number, lng: number): Promise<ForecastHo
  * Find the hourly array index whose timestamp is closest to `targetIso`
  * (must be in local Victoria time, format "YYYY-MM-DDTHH:MM"). Returns -1
  * if the target sits outside the forecast window.
+ *
+ * Note: Date.parse mis-interprets naive "YYYY-MM-DDTHH:MM" strings as
+ * server-local time, but Open-Meteo (with timezone=auto) returns the same
+ * naive Melbourne-local format. Both sides get the same offset bias, so the
+ * relative comparison still finds the correct hour. Do NOT "fix" this by
+ * appending a timezone suffix to one side without the other.
  */
 function nearestHourIndex(times: string[], targetIso: string): number {
   if (times.length === 0) return -1;
@@ -165,7 +172,8 @@ export async function fetchConditions(
   }
 
   const fetchedAt = Date.now();
-  const targetMs = Date.parse(targetIso);
+  // targetIso is naive Melbourne local — convert to true UTC ms for the diff.
+  const targetMs = melbourneLocalToUtcMs(targetIso);
   const horizonHours = Number.isNaN(targetMs)
     ? 0
     : Math.max(0, Math.round((targetMs - fetchedAt) / (60 * 60 * 1000)));
