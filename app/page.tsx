@@ -4,7 +4,6 @@ import { useEffect, useState, useRef, type FormEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { MapPin } from 'lucide-react';
 import { EmailCapture } from '@/components/EmailCapture';
-import { FeedbackBanner } from '@/components/FeedbackBanner';
 import { toTraditionalFt } from '@/lib/scoring/heightScale';
 import type {
   ActiveHazard,
@@ -613,11 +612,22 @@ export default function Home() {
             {result.user.skill} session, {result.user.sessionTiming}, near {result.user.location.name}.
           </footer>
 
-          <FeedbackBanner />
-
           <EmailCapture />
         </>
       )}
+
+      <p className="mt-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
+        Help us improve —{' '}
+        <a
+          href={FEEDBACK_FORM_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-zinc-700 underline underline-offset-2 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+        >
+          share your feedback
+        </a>
+        .
+      </p>
     </div>
   );
 }
