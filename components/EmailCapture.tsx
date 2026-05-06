@@ -15,31 +15,29 @@ export function EmailCapture() {
 
   if (submitted) {
     return (
-      <p className="mt-16 text-[13px] text-text-tertiary text-center">
+      <p className="mt-12 text-center text-xs text-zinc-500 dark:text-zinc-400">
         Thanks — we&apos;ll let you know.
       </p>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-16 flex flex-col sm:flex-row gap-2">
+    <form
+      onSubmit={onSubmit}
+      className="mt-12 flex flex-col gap-2 sm:flex-row"
+      aria-label="Premium feature notification signup"
+    >
       <input
         type="email"
         required
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Your email"
-        className="flex-1 h-10 px-3 bg-surface border border-border rounded-md
-                   text-[13px] text-text-primary placeholder:text-text-tertiary
-                   focus:outline-none focus:border-accent
-                   transition-colors duration-150"
+        className="flex-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
       />
       <button
         type="submit"
-        className="h-10 px-4 bg-bg border border-border rounded-md
-                   text-[13px] font-medium text-text-secondary
-                   hover:text-text-primary hover:border-text-tertiary
-                   transition-colors duration-150 text-center"
+        className="rounded-md border border-zinc-200 bg-white px-4 py-2 text-center text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
       >
         Notify me when premium features launch
       </button>
