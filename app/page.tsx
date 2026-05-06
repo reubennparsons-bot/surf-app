@@ -312,12 +312,11 @@ export default function Home() {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
       <header className="flex items-baseline justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Swell — Victoria
-          </h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Honest spot recommendations from live conditions.
-          </p>
+          <img
+            src="/swell-logo.svg"
+            alt="Swell — Victoria surf assistant"
+            className="h-16 w-auto invert dark:invert-0"
+          />
         </div>
         {showResults && (
           <button
