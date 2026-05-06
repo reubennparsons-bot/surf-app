@@ -96,7 +96,7 @@ function buildRequestParams(payload: ReturnType<typeof serialiseForNarration>) {
     messages: [
       {
         role: 'user' as const,
-        content: `Engine output for this session:\n\n${JSON.stringify(payload, null, 2)}`,
+        content: `Generate a recommendation for the user's session: ${payload.user.session_timing}.\n\nAnchor all temporal language to that timing — say "${payload.user.session_timing}" (or a natural variant) rather than "today" if the user picked something else.\n\nEngine output:\n\n${JSON.stringify(payload, null, 2)}`,
       },
     ],
   };

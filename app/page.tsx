@@ -107,15 +107,15 @@ function SpotCard({ spot }: { spot: ScoredSpot }) {
           </dd>
         </div>
         <div>
-          <dt className="text-zinc-500 dark:text-zinc-400">Effective size</dt>
+          <dt className="text-zinc-500 dark:text-zinc-400">Surf height</dt>
           <dd className="font-medium text-zinc-800 dark:text-zinc-200">
-            {spot.effectiveSizeFt.toFixed(1)}ft
+            {c.swellHeightFt.toFixed(1)}ft
           </dd>
         </div>
         <div className="col-span-2 sm:col-span-1">
           <dt className="text-zinc-500 dark:text-zinc-400">Forecast</dt>
           <dd className="font-medium text-zinc-800 dark:text-zinc-200">
-            {c.forecastHorizonHours}h ahead · cert {(spot.certaintyMultiplier * 100).toFixed(0)}%
+            {c.forecastHorizonHours}h ahead · certainty {(spot.certaintyMultiplier * 100).toFixed(0)}%
           </dd>
         </div>
       </dl>

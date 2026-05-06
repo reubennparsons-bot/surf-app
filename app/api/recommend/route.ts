@@ -197,10 +197,33 @@ function resolveTargetIso(timing: TimingInput, now: Date = new Date()): string {
   return `${tomorrowDate}T08:00`;
 }
 
-function describeTiming(timing: TimingInput): string {
+function describeTiming(timing: TimingInput, now: Date = new Date()): string {
   if (timing.kind === 'today') return 'today';
   if (timing.kind === 'tomorrow') return 'tomorrow morning';
-  return `the session at ${timing.iso}`;
+
+  const target = new Date(timing.iso);
+  if (Number.isNaN(target.getTime())) return 'the requested session';
+
+  const todayDate = melbourneDateOnly(now);
+  const targetDate = melbourneDateOnly(target);
+  if (targetDate === todayDate) return 'today';
+
+  const tomorrowDate = melbourneDateOnly(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+  const dayName = new Intl.DateTimeFormat('en-AU', {
+    timeZone: MELBOURNE_TZ,
+    weekday: 'long',
+  }).format(target);
+  const hour = parseInt(
+    new Intl.DateTimeFormat('en-AU', {
+      timeZone: MELBOURNE_TZ,
+      hour: 'numeric',
+      hour12: false,
+    }).format(target),
+    10,
+  );
+  const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+  if (targetDate === tomorrowDate) return `tomorrow ${timeOfDay}`;
+  return `${dayName} ${timeOfDay}`;
 }
 
 // ─── Visibility ────────────────────────────────────────────────────────────
