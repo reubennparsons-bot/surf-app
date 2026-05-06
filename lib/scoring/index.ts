@@ -178,7 +178,7 @@ export function scoreAll(inputs: ScoreAllInputs): RecommendationResult {
   } else {
     const topScore = scored[0].finalScore;
     if (topScore < GLOBAL_ADVISORY_NOTHING_FIRING_THRESHOLD) {
-      globalAdvisory = "Honest take: nothing's really firing today. Best options are listed but expect a marginal session.";
+      globalAdvisory = "Honest take: nothing's really firing. Best options are listed but expect a marginal session.";
     } else {
       const evaluated = visible.length;
       const windEliminations = eliminations.filter((e) => e.reason === 'wind_onshore').length;

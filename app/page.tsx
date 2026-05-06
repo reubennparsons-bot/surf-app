@@ -315,7 +315,7 @@ export default function Home() {
           <img
             src="/swell-logo.svg"
             alt="Swell — Victoria surf assistant"
-            className="h-16 w-auto invert dark:invert-0"
+            className="h-24 w-auto invert dark:invert-0"
           />
         </div>
         {showResults && (
